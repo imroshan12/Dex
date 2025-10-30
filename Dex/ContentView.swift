@@ -11,12 +11,30 @@ import CoreData
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Pokemon.id, ascending: true)],
-        animation: .default)
-    private var pokeDex: FetchedResults<Pokemon>
+    @FetchRequest<Pokemon>(
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \Pokemon.id, ascending: true)
+        ],
+        animation: .default
+    ) private var pokeDex: FetchedResults
+    
+    @State private var searchText: String = ""
     
     let fetcher = FetchService()
+    
+    private var dynamicPredicate: NSPredicate {
+        var predicates: [NSPredicate] = []
+        
+        // SEARCH PREDICATE
+        if !searchText.isEmpty {
+            predicates.append(NSPredicate(format: "name contains[c] %@", searchText))
+        }
+        
+        // FILTER BY FAVORITE PREDICATE
+        
+        // COMBINE PREDICATES
+        return NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+    }
 
     var body: some View {
         NavigationStack {
@@ -52,6 +70,11 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Pokedex")
+            .searchable(text: $searchText, prompt: "Find a pokemon")
+            .onChange(of: searchText) {
+                pokeDex.nsPredicate = dynamicPredicate
+            }
+            .autocorrectionDisabled()
             .navigationDestination(for: Pokemon.self, destination: { pokemon in
                 Text(pokemon.name ?? "no name")
             })
